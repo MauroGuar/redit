@@ -8,6 +8,8 @@
 
 #include "file_utils.h"
 
+#include <libgen.h>
+
 char *getCurrentWorkingDirectory() {
     char *cwd = (char *) malloc(PATH_MAX * sizeof(char));
     if (cwd == NULL) {
@@ -39,6 +41,37 @@ char *getAbsolutePath(const char *path) {
     strcpy(resolvedPath, tempResolvedPath);
     return resolvedPath;
 }
+
+char *getAbsolutePathFuture(const char *path) {
+    char tempResolvedPath[PATH_MAX];
+    char *resolvedPath;
+    char *path_copy = strdup(path);
+    if (path_copy == NULL) {
+        perror("Failed to allocate memory");
+        exit(EXIT_FAILURE);
+    }
+
+    char *dir_path = dirname(path_copy);
+
+    if (realpath(dir_path, tempResolvedPath) == NULL) {
+        perror("Failed to resolve directory path");
+        free(path_copy);
+        exit(EXIT_FAILURE);
+    }
+
+    resolvedPath = malloc(strlen(tempResolvedPath) + strlen(basename((char *)path)) + 2);
+    if (resolvedPath == NULL) {
+        perror("Failed to allocate memory");
+        free(path_copy);
+        exit(EXIT_FAILURE);
+    }
+
+    snprintf(resolvedPath, strlen(tempResolvedPath) + strlen(basename((char *)path)) + 2, "%s/%s", tempResolvedPath, basename((char *)path));
+
+    free(path_copy);
+    return resolvedPath;
+}
+
 
 uid_t getEffectiveUserId() {
     char *sudo_user = getenv("SUDO_USER");

@@ -11,16 +11,20 @@
 
 #define COPY_BUF_SIZE 4096
 
-char *copyMode(const char *src_file);
+void copyMode(const char *copy_file_path,const char *privileged_file_path);
 
-void overwriteMode(const char *dest_file);
+void overwriteMode(const char *copy_file_path, const char *privileged_file_path, bool keep_copy);
 
 int main(int argc, char *argv[]) {
     int opt;
     bool copy_mode = false;
     bool overwrite_mode = false;
 
-    while ((opt = getopt(argc, argv, "CO")) != -1) {
+    bool copied_file_path = false;
+    bool keep_copy = false;
+
+    // TODO -e flag to choose editor
+    while ((opt = getopt(argc, argv, "COkd")) != -1) {
         switch (opt) {
             case 'C':
                 copy_mode = true;
@@ -28,86 +32,84 @@ int main(int argc, char *argv[]) {
             case 'O':
                 overwrite_mode = true;
                 break;
+            case 'd':
+                copied_file_path = true;
+                break;
+            case 'k':
+                keep_copy = true;
+                break;
             default:
                 fprintf(stderr, "Usage: %s -C /path/to/file\n", argv[0]);
                 fprintf(stderr, "       %s -O /path/to/edited/file\n", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
+
     if (copy_mode && overwrite_mode) {
         fprintf(stderr, "Error: Cannot use -C and -O at the same time.\n");
         exit(EXIT_FAILURE);
-    } else if (copy_mode) {
-        if (optind >= argc) {
-            fprintf(stderr, "Usage: %s -C /path/to/file\n", argv[0]);
-            exit(EXIT_FAILURE);
-        }
-        const char *source_file = argv[optind];
-        char *copied_file_path = copyMode(source_file);
-        printf("%s\n", copied_file_path);
-        fflush(stdout);
-        free(copied_file_path);
-        return 1;
-    } else if (overwrite_mode) {
-        if (optind >= argc) {
-            fprintf(stderr, "Usage: %s -O /path/to/edited/file\n", argv[0]);
-            exit(EXIT_FAILURE);
-        }
-        const char *dest_file = argv[optind];
-        overwriteMode(dest_file);
-        return 1;
     }
+
+    char *copy_file_path;
+    char *privileged_file_path;
+    if (copied_file_path) {
+        if (optind + 1 >= argc) {
+            fprintf(stderr, "Usage: %s -C /path/to/copy/file /path/to/original/file\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+
+        copy_file_path = getAbsolutePathFuture(argv[optind]);
+        privileged_file_path = getAbsolutePath(argv[optind + 1]);
+    } else {
+        if (optind>= argc) {
+            fprintf(stderr, "Usage: %s -C /path/to/original/file\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+
+        char *cwd = getCurrentWorkingDirectory();
+        privileged_file_path = getAbsolutePath(argv[optind]);
+        char *base_name = basename(privileged_file_path);
+        copy_file_path = malloc(strlen(cwd) + strlen(base_name) + 2);
+        if (copy_file_path == NULL) {
+            perror("malloc");
+            free(cwd);
+            exit(EXIT_FAILURE);
+        }
+
+        sprintf(copy_file_path, "%s/%s", cwd, base_name);
+    }
+
+    if (copy_mode) {
+        copyMode(copy_file_path, privileged_file_path);
+        printf("%s\n", copy_file_path);
+        return 0;
+    } else if (overwrite_mode) {
+        overwriteMode(copy_file_path, privileged_file_path, keep_copy);
+        return 0;
+    }
+
+    free(copy_file_path);
+    free(privileged_file_path);
 }
 
-char *copyMode(const char *src_file) {
-    char *CWD = getCurrentWorkingDirectory();
-    char *SRC_ABS_PATH = getAbsolutePath(src_file);
-    const char *SRC_FILE_NAME = basename(SRC_ABS_PATH);
-    char *DEST_ABS_PATH = malloc(strlen(CWD) + strlen(SRC_FILE_NAME) + 2);
-    if (DEST_ABS_PATH == NULL) {
-        perror("malloc");
-        free(CWD);
-        free(SRC_ABS_PATH);
-        exit(EXIT_FAILURE);
-    }
-    snprintf(DEST_ABS_PATH, strlen(CWD) + strlen(SRC_FILE_NAME) + 2, "%s/%s", CWD, SRC_FILE_NAME);
+void copyMode(const char *copy_file_path,const char *privileged_file_path) {
     const uid_t USER_EF_ID = getEffectiveUserId();
 
-    copyFile(SRC_ABS_PATH, DEST_ABS_PATH, COPY_BUF_SIZE);
-    changeFileOwner(DEST_ABS_PATH, USER_EF_ID);
+    copyFile(privileged_file_path, copy_file_path, COPY_BUF_SIZE);
+    changeFileOwner(copy_file_path, USER_EF_ID);
     mode_t new_perms = S_IRUSR | S_IWUSR;
-    addFilePermissions(DEST_ABS_PATH, new_perms);
-
-    free(CWD);
-    free(SRC_ABS_PATH);
-    return strdup(DEST_ABS_PATH);
+    addFilePermissions(copy_file_path, new_perms);
 }
 
-void overwriteMode(const char *dest_file) {
-    char *CWD = getCurrentWorkingDirectory();
-    char *DEST_ABS_PATH = getAbsolutePath(dest_file);
-    const char *DEST_FILE_NAME = basename(DEST_ABS_PATH);
+void overwriteMode(const char *copy_file_path, const char *privileged_file_path, bool keep_copy) {
+    uid_t prv_file_owner = getFileOwner(privileged_file_path);
+    mode_t prv_file_perms = getFilePermissions(privileged_file_path);
 
-    char *SRC_ABS_PATH = malloc(strlen(CWD) + strlen(DEST_FILE_NAME) + 2);
-    if (SRC_ABS_PATH == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
+    copyFile(copy_file_path, privileged_file_path, COPY_BUF_SIZE);
+    changeFileOwner(privileged_file_path, prv_file_owner);
+    overwriteFilePermissions(privileged_file_path, prv_file_perms);
+
+    if (!keep_copy) {
+        if (remove(copy_file_path) == -1) { perror("Failed to remove copy file."); }
     }
-
-    snprintf(SRC_ABS_PATH, strlen(CWD) + strlen(DEST_FILE_NAME) + 2, "%s/%s", CWD, DEST_FILE_NAME);
-
-    mode_t DEST_FILE_PERMS = getFilePermissions(dest_file);
-    uid_t DEST_FILE_OWNER = getFileOwner(DEST_ABS_PATH);
-
-    copyFile(SRC_ABS_PATH, DEST_ABS_PATH, COPY_BUF_SIZE);
-    changeFileOwner(DEST_ABS_PATH, DEST_FILE_OWNER);
-    overwriteFilePermissions(DEST_ABS_PATH, DEST_FILE_PERMS);
-
-    if (remove(SRC_ABS_PATH) == -1) {
-        perror("Failed to remove source file.");
-    }
-
-    free(CWD);
-    free(DEST_ABS_PATH);
-    free(SRC_ABS_PATH);
 }

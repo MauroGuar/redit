@@ -4,9 +4,11 @@
 #include <sys/types.h>
 
 
+char *getCurrentWorkingDirectory();
+
 char *getAbsolutePath(const char *path);
 
-char *getCurrentWorkingDirectory();
+char *getAbsolutePathFuture(const char *path);
 
 uid_t getEffectiveUserId();
 
