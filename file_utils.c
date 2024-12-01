@@ -8,7 +8,6 @@
 
 #include "file_utils.h"
 
-
 char *getCurrentWorkingDirectory() {
     char *cwd = (char *) malloc(PATH_MAX * sizeof(char));
     if (cwd == NULL) {
@@ -45,18 +44,31 @@ uid_t getEffectiveUserId() {
     char *sudo_user = getenv("SUDO_USER");
     if (sudo_user) {
         struct passwd *pw = getpwnam(sudo_user);
-        if (pw) { return pw->pw_uid; } else {
+        if (pw) {
+            return pw->pw_uid;
+        } else {
             perror("getpwnam");
             return -1;
         }
-    } else { return getuid(); }
+    } else {
+        return getuid();
+    }
 }
 
-mode_t getFilePermissions(char *file_path) {
+mode_t getFilePermissions(const char *file_path) {
     struct stat file_stat;
     if (stat(file_path, &file_stat) == -1) {
         perror("stat");
         exit(EXIT_FAILURE);
     }
     return file_stat.st_mode;
+}
+
+uid_t getFileOwner(const char *file_path) {
+    struct stat file_stat;
+    if (stat(file_path, &file_stat) == -1) {
+        perror("stat");
+        exit(EXIT_FAILURE);
+    }
+    return file_stat.st_uid;
 }

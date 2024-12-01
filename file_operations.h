@@ -3,7 +3,12 @@
 
 #include <sys/types.h>
 
-void copyFile(const char *src, const char *dest);
-void makeFileAvailable(const char *file_path, uid_t user_uid);
+void copyFile(const char *src, const char *dest, const int BUF_SIZE);
 
-#endif // FILE_ACTIONS_H
+void changeFileOwner(const char *file_path, uid_t user_uid);
+
+void addFilePermissions(const char *file_path, mode_t add_mode);
+
+void overwriteFilePermissions(const char *file_path, mode_t new_mode);
+
+#endif

@@ -41,18 +41,28 @@ void copyFile(const char *src, const char *dest, const int BUF_SIZE) {
     close(dest_fd);
 }
 
-void makeFileAvailable(const char *file_path, uid_t user_uid) {
+void changeFileOwner(const char *file_path, uid_t user_uid) {
     gid_t group_id = -1;
     if (chown(file_path, user_uid, group_id) == -1) {
         perror("chown");
         exit(EXIT_FAILURE);
     }
+}
+
+void addFilePermissions(const char *file_path, mode_t add_mode) {
     struct stat file_stat;
     if (stat(file_path, &file_stat) == -1) {
         perror("stat");
         exit(EXIT_FAILURE);
     }
-    mode_t new_mode = file_stat.st_mode | S_IRUSR | S_IWUSR;
+    mode_t new_mode = file_stat.st_mode | add_mode;
+    if (chmod(file_path, new_mode) == -1) {
+        perror("chmod");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void overwriteFilePermissions(const char *file_path, mode_t new_mode) {
     if (chmod(file_path, new_mode) == -1) {
         perror("chmod");
         exit(EXIT_FAILURE);

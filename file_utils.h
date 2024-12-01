@@ -1,4 +1,3 @@
-// file_utils.h
 #ifndef FILE_UTILS_H
 #define FILE_UTILS_H
 
@@ -11,6 +10,8 @@ char *getCurrentWorkingDirectory();
 
 uid_t getEffectiveUserId();
 
-mode_t getFilePermissions(char *file_path);
+mode_t getFilePermissions(const char *file_path);
 
-#endif // FILE_UTILS_H
+uid_t getFileOwner(const char *file_path);
+
+#endif
