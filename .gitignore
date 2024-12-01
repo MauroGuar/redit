@@ -85,4 +85,6 @@ fabric.properties
 /filter-more/images/tower.bmp
 /filter-more/images/yard.bmp
 
-#CMakeLists.txt
+#CMakeLists.tx
+
+tests
