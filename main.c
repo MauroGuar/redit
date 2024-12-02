@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 
 
     // TODO -e flag to choose editor
-    while ((opt = getopt(argc, argv, "COde::k")) != -1) {
+    while ((opt = getopt(argc, argv, "COdke::")) != -1) {
         switch (opt) {
             case 'C':
                 copy_mode = true;
@@ -42,6 +42,13 @@ int main(int argc, char *argv[]) {
                 break;
             case 'e':
                 e_included = true;
+                if (optarg != NULL && strlen(optarg) > 1) {
+                    memmove(optarg, optarg + 1, strlen(optarg));
+                    for (int i = 0; i < strlen(optarg); ++i) {
+                        optarg[i] = tolower(optarg[i]);
+                    }
+                    editor = optarg;
+                }
                 break;
             case 'k':
                 keep_copy = true;
@@ -73,7 +80,6 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Usage: %s -C /path/to/original/file\n", argv[0]);
             exit(EXIT_FAILURE);
         }
-
         char *cwd = getCurrentWorkingDirectory();
         privileged_file_path = getAbsolutePath(argv[optind]);
         char *base_name = basename(privileged_file_path);
@@ -91,14 +97,16 @@ int main(int argc, char *argv[]) {
         copyMode(copy_file_path, privileged_file_path);
         if (!e_included) {
             printf("%s\n", copy_file_path);
-        } /*else {
-            for (int i = 0; i < strlen(editor); ++i) {
-                editor[i] = tolower(editor[i]);
+        } else {
+            uid_t user_id = getEffectiveUserId();
+            char command[512];
+            snprintf(command, sizeof(command), "sudo -u \\#%d %s %s", user_id, editor, copy_file_path);
+            int result = system(command);
+            if (result == -1) {
+                fprintf(stderr, "Error executing: sudo -u \\#%d %s %s", user_id, editor, copy_file_path);
+                exit(EXIT_FAILURE);
             }
-            char command[1024];
-            snprintf(command, sizeof(command), "code %s", editor);
-            system(command);
-        }*/
+        }
         return 0;
     } else if (overwrite_mode) {
         overwriteMode(copy_file_path, privileged_file_path, keep_copy);
