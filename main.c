@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +12,7 @@
 
 #define COPY_BUF_SIZE 4096
 
-void copyMode(const char *copy_file_path,const char *privileged_file_path);
+void copyMode(const char *copy_file_path, const char *privileged_file_path);
 
 void overwriteMode(const char *copy_file_path, const char *privileged_file_path, bool keep_copy);
 
@@ -23,8 +24,12 @@ int main(int argc, char *argv[]) {
     bool copied_file_path = false;
     bool keep_copy = false;
 
+    char *editor = "code";
+    bool e_included = false;
+
+
     // TODO -e flag to choose editor
-    while ((opt = getopt(argc, argv, "COkd")) != -1) {
+    while ((opt = getopt(argc, argv, "COde::k")) != -1) {
         switch (opt) {
             case 'C':
                 copy_mode = true;
@@ -34,6 +39,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'd':
                 copied_file_path = true;
+                break;
+            case 'e':
+                e_included = true;
                 break;
             case 'k':
                 keep_copy = true;
@@ -61,7 +69,7 @@ int main(int argc, char *argv[]) {
         copy_file_path = getAbsolutePathFuture(argv[optind]);
         privileged_file_path = getAbsolutePath(argv[optind + 1]);
     } else {
-        if (optind>= argc) {
+        if (optind >= argc) {
             fprintf(stderr, "Usage: %s -C /path/to/original/file\n", argv[0]);
             exit(EXIT_FAILURE);
         }
@@ -81,7 +89,16 @@ int main(int argc, char *argv[]) {
 
     if (copy_mode) {
         copyMode(copy_file_path, privileged_file_path);
-        printf("%s\n", copy_file_path);
+        if (!e_included) {
+            printf("%s\n", copy_file_path);
+        } /*else {
+            for (int i = 0; i < strlen(editor); ++i) {
+                editor[i] = tolower(editor[i]);
+            }
+            char command[1024];
+            snprintf(command, sizeof(command), "code %s", editor);
+            system(command);
+        }*/
         return 0;
     } else if (overwrite_mode) {
         overwriteMode(copy_file_path, privileged_file_path, keep_copy);
@@ -92,7 +109,7 @@ int main(int argc, char *argv[]) {
     free(privileged_file_path);
 }
 
-void copyMode(const char *copy_file_path,const char *privileged_file_path) {
+void copyMode(const char *copy_file_path, const char *privileged_file_path) {
     const uid_t USER_EF_ID = getEffectiveUserId();
 
     copyFile(privileged_file_path, copy_file_path, COPY_BUF_SIZE);
