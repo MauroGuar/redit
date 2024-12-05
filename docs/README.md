@@ -23,7 +23,7 @@ redit -C /path/to/original/file
 redit -O /path/to/edited/file
 ```
 
-#### Flags
+### Flags
 
 - `-C`: **Copy mode**
   - This flag initiates the copy mode. It copies the specified file to a location where it can be edited with root privileges. After copying, the file's ownership and permissions are adjusted for editing.
