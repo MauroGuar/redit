@@ -2,7 +2,7 @@
 
 `redit` (root + edit) is a command-line tool for Linux, designed to simplify the process of copying, editing, and overwriting files from other users. As the name suggests, it combines root privileges and editing capabilities into a single, easy-to-use command.
 
-![Main Graphic](img/main_graphic_transparent.jpg)
+![Main Graphic](img/main_graphic_transparent.png)
 
 
 ## About This Project
