@@ -4,6 +4,7 @@
 
 ![Main Graphic](img/main_graphic.jpg)
 
+
 ## About This Project
 
 - I am new to developing programs for the Linux terminal and also to managing repositories in a semi-professional manner.
