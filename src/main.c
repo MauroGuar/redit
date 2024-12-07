@@ -7,8 +7,8 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#include "file_utils.h"
-#include "file_operations.h"
+#include "../include/file_utils.h"
+#include "../include/file_operations.h"
 
 #define COPY_BUF_SIZE 4096
 

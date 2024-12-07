@@ -5,9 +5,6 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <string.h>
-
-#include "file_utils.h"
-
 #include <libgen.h>
 
 char *getCurrentWorkingDirectory() {
