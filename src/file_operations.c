@@ -1,13 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <sys/stat.h>
+
+#include "../include/file_utils.h"
 
 void copyFile(const char *src, const char *dest, const int BUF_SIZE) {
     int src_fd, dest_fd;
     u_int8_t buffer[BUF_SIZE];
     ssize_t n_read, n_written;
+
+    if (strcmp(src, dest) == 0) {
+        fprintf(stderr, "Source and destination paths cannot be the same\n");
+        exit(EXIT_FAILURE);
+    }
+
 
     src_fd = open(src, O_RDONLY);
     if (src_fd == -1) {
@@ -66,4 +76,11 @@ void overwriteFilePermissions(const char *file_path, mode_t new_mode) {
         perror("chmod");
         exit(EXIT_FAILURE);
     }
+}
+
+int executeEditorCommand(const char *editor, const char* copy_file_path) {
+    const uid_t user_id = getEffectiveUserId();
+    char command[512];
+    snprintf(command, sizeof(command), "sudo -u \\#%d %s %s", user_id, editor, copy_file_path);
+    return system(command);
 }

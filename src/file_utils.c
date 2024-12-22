@@ -6,6 +6,59 @@
 #include <pwd.h>
 #include <string.h>
 #include <libgen.h>
+#include <cargs.h>
+
+static struct cag_option options[] = {
+    {
+        .identifier = 'C',
+        .access_letters = "Cc",
+        .access_name = "copy",
+        .value_name = NULL,
+        .description = "Copy Mode"
+    },
+    {
+        .identifier = 'O',
+        .access_letters = "Oo",
+        .access_name = "overwrite",
+        .value_name = NULL,
+        .description = "Overwrite Mode"
+    },
+    {
+        .identifier = 'd',
+        .access_letters = "d",
+        .access_name = "dir",
+        .value_name = NULL,
+        .description = "Copied file path"
+    },
+    {
+        .identifier = 'e',
+        .access_letters = "e",
+        .access_name = "editor",
+        .value_name = "EDITOR",
+        .description = "Editor to use"
+    },
+    {
+        .identifier = 'k',
+        .access_letters = "k",
+        .access_name = "keep",
+        .value_name = NULL,
+        .description = "Keep copy"
+    },
+    {
+        .identifier = 'h',
+        .access_letters = "h",
+        .access_name = "help",
+        .description = "Shows the command help"
+    }
+};
+
+const struct cag_option *getProgramOptions() {
+    return options;
+}
+
+size_t getProgramOptionsSize() {
+    return sizeof(options) / sizeof(options[0]);
+}
 
 char *getCurrentWorkingDirectory() {
     char *cwd = (char *) malloc(PATH_MAX * sizeof(char));
@@ -56,14 +109,15 @@ char *getAbsolutePathFuture(const char *path) {
         exit(EXIT_FAILURE);
     }
 
-    resolvedPath = malloc(strlen(tempResolvedPath) + strlen(basename((char *)path)) + 2);
+    resolvedPath = malloc(strlen(tempResolvedPath) + strlen(basename((char *) path)) + 2);
     if (resolvedPath == NULL) {
         perror("Failed to allocate memory");
         free(path_copy);
         exit(EXIT_FAILURE);
     }
 
-    snprintf(resolvedPath, strlen(tempResolvedPath) + strlen(basename((char *)path)) + 2, "%s/%s", tempResolvedPath, basename((char *)path));
+    snprintf(resolvedPath, strlen(tempResolvedPath) + strlen(basename((char *) path)) + 2, "%s/%s", tempResolvedPath,
+             basename((char *) path));
 
     free(path_copy);
     return resolvedPath;

@@ -2,7 +2,11 @@
 #define FILE_UTILS_H
 
 #include <sys/types.h>
+#include <cargs.h>
 
+const struct cag_option *getProgramOptions();
+
+size_t getProgramOptionsSize();
 
 char *getCurrentWorkingDirectory();
 
