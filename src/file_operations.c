@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -7,6 +8,8 @@
 #include <sys/stat.h>
 
 #include "../include/file_utils.h"
+
+#define DEFAULT_EDITOR "vim"
 
 void copyFile(const char *src, const char *dest, const int BUF_SIZE) {
     int src_fd, dest_fd;
@@ -78,9 +81,21 @@ void overwriteFilePermissions(const char *file_path, mode_t new_mode) {
     }
 }
 
-int executeEditorCommand(const char *editor, const char* copy_file_path) {
+int executeEditorCommand(const char *editor, const char *copy_file_path) {
+    char *ed;
+    if (editor != NULL) {
+        ed = strdup(editor);
+        for (int i = 0; i < strlen(editor); ++i) {
+            ed[i] = tolower(editor[i]);
+        }
+    } else {
+        ed = DEFAULT_EDITOR;
+    }
+
     const uid_t user_id = getEffectiveUserId();
     char command[512];
-    snprintf(command, sizeof(command), "sudo -u \\#%d %s %s", user_id, editor, copy_file_path);
+    snprintf(command, sizeof(command), "sudo -u \\#%d %s %s", user_id, ed, copy_file_path);
+
+    if (editor != NULL) { free(ed); }
     return system(command);
 }

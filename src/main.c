@@ -14,8 +14,6 @@
 
 #define COPY_BUF_SIZE 4096
 
-#define EDITOR_DEFAULT "code"
-
 void copyMode(const char *copy_file_path, const char *privileged_file_path);
 
 void overwriteMode(const char *copy_file_path, const char *privileged_file_path, bool keep_copy);
@@ -25,7 +23,7 @@ int main(int argc, char *argv[]) {
     bool overwrite_mode = false;
     bool copied_file_path = false;
     bool keep_copy = false;
-    const char* EDITOR;
+    const char *EDITOR = NULL;
     bool e_included = false;
 
     const struct cag_option *program_options = getProgramOptions();
@@ -49,8 +47,6 @@ int main(int argc, char *argv[]) {
                 e_included = true;
                 if (cag_option_get_value(&context) != NULL) {
                     EDITOR = cag_option_get_value(&context);
-                } else {
-                    EDITOR = NULL;
                 }
             case 'k':
                 keep_copy = true;
@@ -101,40 +97,17 @@ int main(int argc, char *argv[]) {
         if (!e_included) {
             printf("%s\n", copy_file_path);
         } else {
-            if (EDITOR != NULL) {
-                char* editor = strdup(EDITOR);
-                for (int i = 0; i < strlen(EDITOR); ++i) {
-                    editor[i] = tolower(EDITOR[i]);
-                }
-                int result = executeEditorCommand(editor, copy_file_path);
-                if (result == 256) {
-                    free(editor);
-                    free(copy_file_path);
-                    free(privileged_file_path);
-                    exit(EXIT_FAILURE);
-                }
-                if (result == -1) {
-                    fprintf(stderr, "Error executing the editor command.");
-                    free(editor);
-                    free(copy_file_path);
-                    free(privileged_file_path);
-                    exit(EXIT_FAILURE);
-                }
-                free(editor);
-            } else {
-                char *editor = EDITOR_DEFAULT;
-                int result = executeEditorCommand(editor, copy_file_path);
-                if (result == 256) {
-                    free(copy_file_path);
-                    free(privileged_file_path);
-                    exit(EXIT_FAILURE);
-                }
-                if (result == -1) {
-                    fprintf(stderr, "Error executing the editor command.");
-                    free(copy_file_path);
-                    free(privileged_file_path);
-                    exit(EXIT_FAILURE);
-                }
+            const int result = executeEditorCommand(EDITOR, copy_file_path);
+            if (result == 256) {
+                free(copy_file_path);
+                free(privileged_file_path);
+                exit(EXIT_FAILURE);
+            }
+            if (result == -1) {
+                fprintf(stderr, "Error executing the editor command.");
+                free(copy_file_path);
+                free(privileged_file_path);
+                exit(EXIT_FAILURE);
             }
         }
     } else if (overwrite_mode) {
