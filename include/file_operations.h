@@ -3,13 +3,13 @@
 
 #include <sys/types.h>
 
-void copyFile(const char *src, const char *dest, const int BUF_SIZE);
+int copyFile(const char *src, const char *dest, const int BUF_SIZE);
 
-void changeFileOwner(const char *file_path, uid_t user_uid);
+int changeFileOwner(const char *file_path, uid_t user_uid);
 
-void addFilePermissions(const char *file_path, mode_t add_mode);
+int addFilePermissions(const char *file_path, mode_t add_mode);
 
-void overwriteFilePermissions(const char *file_path, mode_t new_mode);
+int overwriteFilePermissions(const char *file_path, mode_t new_mode);
 
 int executeEditorCommand(const char *editor, const char* copy_file_path);
 

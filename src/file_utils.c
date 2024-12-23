@@ -8,6 +8,9 @@
 #include <libgen.h>
 #include <cargs.h>
 
+#include "../include/error_codes.h"
+#include "../include/file_utils.h"
+
 static struct cag_option options[] = {
     {
         .identifier = 'C',
@@ -60,95 +63,90 @@ size_t getProgramOptionsSize() {
     return sizeof(options) / sizeof(options[0]);
 }
 
-char *getCurrentWorkingDirectory() {
-    char *cwd = (char *) malloc(PATH_MAX * sizeof(char));
-    if (cwd == NULL) {
-        perror("Failed to allocate memory");
-        exit(EXIT_FAILURE);
+
+int getCurrentWorkingDirectory(char **cwd) {
+    *cwd = (char *) malloc(PATH_MAX * sizeof(char));
+    if (*cwd == NULL) {
+        return ERROR_MEMORY_ALLOCATION;
     }
 
-    if (getcwd(cwd, PATH_MAX) == NULL) {
-        perror("Failed to get current working directory");
-        free(cwd);
-        exit(EXIT_FAILURE);
+    if (getcwd(*cwd, PATH_MAX) == NULL) {
+        free(*cwd);
+        return ERROR_CWD;
     }
 
-    return cwd;
+    return SUCCESS;
 }
 
-char *getAbsolutePath(const char *path) {
+int getAbsolutePath(const char *original_path, char **resolved_path) {
     char tempResolvedPath[PATH_MAX];
-    char *resolvedPath;
-    if (realpath(path, tempResolvedPath) == NULL) {
-        perror("Failed to resolve absolute path");
-        exit(EXIT_FAILURE);
+    if (realpath(original_path, tempResolvedPath) == NULL) {
+        return ERROR_RESOLVING_PATH;
     }
-    resolvedPath = (char *) malloc(strlen(tempResolvedPath) + 1);
-    if (resolvedPath == NULL) {
-        perror("Failed to allocate memory");
-        exit(EXIT_FAILURE);
+
+    *resolved_path = (char *) malloc(strlen(tempResolvedPath) + 1);
+    if (*resolved_path == NULL) {
+        return ERROR_MEMORY_ALLOCATION;
     }
-    strcpy(resolvedPath, tempResolvedPath);
-    return resolvedPath;
+
+    strcpy(*resolved_path, tempResolvedPath);
+    return SUCCESS;
 }
 
-char *getAbsolutePathFuture(const char *path) {
-    char tempResolvedPath[PATH_MAX];
-    char *resolvedPath;
-    char *path_copy = strdup(path);
+int getAbsolutePathFuture(const char *original_path, char **resolved_path) {
+    char temp_resolved_path[PATH_MAX];
+    char *path_copy = strdup(original_path);
     if (path_copy == NULL) {
-        perror("Failed to allocate memory");
-        exit(EXIT_FAILURE);
+        return ERROR_MEMORY_ALLOCATION;
     }
 
     char *dir_path = dirname(path_copy);
 
-    if (realpath(dir_path, tempResolvedPath) == NULL) {
-        perror("Failed to resolve directory path");
+    if (realpath(dir_path, temp_resolved_path) == NULL) {
         free(path_copy);
-        exit(EXIT_FAILURE);
+        return ERROR_RESOLVING_PATH;
     }
 
-    resolvedPath = malloc(strlen(tempResolvedPath) + strlen(basename((char *) path)) + 2);
-    if (resolvedPath == NULL) {
-        perror("Failed to allocate memory");
+    *resolved_path = (char *) malloc(strlen(temp_resolved_path) + strlen(basename((char *) original_path)) + 2);
+    if (*resolved_path == NULL) {
         free(path_copy);
-        exit(EXIT_FAILURE);
+        return ERROR_MEMORY_ALLOCATION;
     }
 
-    snprintf(resolvedPath, strlen(tempResolvedPath) + strlen(basename((char *) path)) + 2, "%s/%s", tempResolvedPath,
-             basename((char *) path));
+    snprintf(*resolved_path, strlen(temp_resolved_path) + strlen(basename((char *) original_path)) + 2, "%s/%s", temp_resolved_path,
+             basename((char *) original_path));
 
     free(path_copy);
-    return resolvedPath;
+
+    return SUCCESS;
 }
 
-
-uid_t getEffectiveUserId() {
+int getEffectiveUserId(uid_t *u_id) {
     char *sudo_user = getenv("SUDO_USER");
     if (sudo_user) {
         struct passwd *pw = getpwnam(sudo_user);
         if (pw) {
-            return pw->pw_uid;
+            *u_id = pw->pw_uid;
+            return SUCCESS;
         } else {
-            perror("getpwnam");
-            return -1;
+            return ERROR_USER_NOT_FOUND;
         }
     } else {
-        return getuid();
+        *u_id = getuid();
+        return SUCCESS;
     }
 }
 
-mode_t getFilePermissions(const char *file_path) {
+int getFilePermissions(const char *file_path, mode_t *permissions) {
     struct stat file_stat;
     if (stat(file_path, &file_stat) == -1) {
-        perror("stat");
-        exit(EXIT_FAILURE);
+        return ERROR_FILE_NOT_FOUND;
     }
-    return file_stat.st_mode;
+    *permissions = file_stat.st_mode;
+    return SUCCESS;
 }
 
-uid_t getFileOwner(const char *file_path) {
+int getFileOwner(const char *file_path, uid_t *owner) {
     struct stat file_stat;
     if (stat(file_path, &file_stat) == -1) {
         perror("stat");

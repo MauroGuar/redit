@@ -8,16 +8,16 @@ const struct cag_option *getProgramOptions();
 
 size_t getProgramOptionsSize();
 
-char *getCurrentWorkingDirectory();
+int getCurrentWorkingDirectory(char **cwd);
 
-char *getAbsolutePath(const char *path);
+int getAbsolutePath(const char *original_path, char **resolved_path);
 
-char *getAbsolutePathFuture(const char *path);
+int getAbsolutePathFuture(const char *original_path, char **resolved_path);
 
-uid_t getEffectiveUserId();
+int getEffectiveUserId(uid_t *u_id);
 
-mode_t getFilePermissions(const char *file_path);
+int getFilePermissions(const char *file_path, mode_t *permissions);
 
-uid_t getFileOwner(const char *file_path);
+int getFileOwner(const char *file_path, uid_t *owner);
 
 #endif

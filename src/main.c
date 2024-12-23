@@ -8,7 +8,9 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <cargs.h>
+#include <linux/limits.h>
 
+#include "../include/error_codes.h"
 #include "../include/file_utils.h"
 #include "../include/file_operations.h"
 
@@ -71,16 +73,20 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
-        copy_file_path = getAbsolutePathFuture(argv[param_index]);
-        privileged_file_path = getAbsolutePath(argv[param_index + 1]);
+        // TODO handle prv & cpy result
+        const int cpy_path_result = getAbsolutePathFuture(argv[param_index], &copy_file_path);
+        const int prv_path_result = getAbsolutePath(argv[param_index + 1], &privileged_file_path);
     } else {
         if (param_index >= argc) {
             fprintf(stderr, "Usage: %s -C /path/to/original/file\n", argv[0]);
             exit(EXIT_FAILURE);
         }
 
-        char *cwd = getCurrentWorkingDirectory();
-        privileged_file_path = getAbsolutePath(argv[param_index]);
+        char *cwd;
+        // TODO handle cwd_result
+        const int cwd_result = getCurrentWorkingDirectory(&cwd);
+        // TODO handle prv result
+        const int prv_path_result = getAbsolutePath(argv[param_index], &privileged_file_path);
         char *base_name = basename(privileged_file_path);
         copy_file_path = malloc(strlen(cwd) + strlen(base_name) + 2);
         if (copy_file_path == NULL) {
@@ -91,6 +97,7 @@ int main(int argc, char *argv[]) {
 
         sprintf(copy_file_path, "%s/%s", cwd, base_name);
     }
+
 
     if (copy_mode) {
         copyMode(copy_file_path, privileged_file_path);
@@ -119,21 +126,35 @@ int main(int argc, char *argv[]) {
 }
 
 void copyMode(const char *copy_file_path, const char *privileged_file_path) {
-    const uid_t USER_EF_ID = getEffectiveUserId();
+    uid_t USER_EF_ID;
+    // TODO handle uid_result
+    const int uid_result = getEffectiveUserId(&USER_EF_ID);
 
-    copyFile(privileged_file_path, copy_file_path, COPY_BUF_SIZE);
-    changeFileOwner(copy_file_path, USER_EF_ID);
+    // TODO handle copy_result
+    const int copy_result = copyFile(privileged_file_path, copy_file_path, COPY_BUF_SIZE);
+    // TODO handle ch_own_result
+    const int ch_own_result = changeFileOwner(copy_file_path, USER_EF_ID);
     mode_t new_perms = S_IRUSR | S_IWUSR;
-    addFilePermissions(copy_file_path, new_perms);
+    // TODO handle add_perms_result
+    const int add_perms_result = addFilePermissions(copy_file_path, new_perms);
 }
 
 void overwriteMode(const char *copy_file_path, const char *privileged_file_path, bool keep_copy) {
-    uid_t prv_file_owner = getFileOwner(privileged_file_path);
-    mode_t prv_file_perms = getFilePermissions(privileged_file_path);
 
-    copyFile(copy_file_path, privileged_file_path, COPY_BUF_SIZE);
-    changeFileOwner(privileged_file_path, prv_file_owner);
-    overwriteFilePermissions(privileged_file_path, prv_file_perms);
+    uid_t prv_file_owner;
+    // TODO handle own_result
+    const int own_result = getFileOwner(privileged_file_path, &prv_file_owner);
+
+    mode_t prv_file_perms;
+    // TODO handle perm_result
+    const int perm_result = getFilePermissions(privileged_file_path, &prv_file_perms);
+
+    // TODO handle copy_result
+    const int copy_result = copyFile(copy_file_path, privileged_file_path, COPY_BUF_SIZE);
+    // TODO handle ch_own_result
+    const int ch_own_result = changeFileOwner(privileged_file_path, prv_file_owner);
+    // TODO handle ovr_perms_result
+    const int ovr_perms_result = overwriteFilePermissions(privileged_file_path, prv_file_perms);
 
     if (!keep_copy) {
         if (remove(copy_file_path) == -1) { perror("Failed to remove copy file."); }
