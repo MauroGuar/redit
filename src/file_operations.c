@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -21,16 +22,21 @@ int copyFile(const char *src, const char *dest, const int BUF_SIZE) {
         return ERROR_SAME_SOURCE;
     }
 
-
     src_fd = open(src, O_RDONLY);
     if (src_fd == -1) {
+        if (errno == EACCES) {
+            return ERROR_PERMISSION_DENIED;
+        }
         return ERROR_FILE_NOT_FOUND;
     }
 
     dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (dest_fd == -1) {
         close(src_fd);
-        return ERROR_PERMISSION_DENIED;
+        if (errno == EACCES) {
+            return ERROR_PERMISSION_DENIED;
+        }
+        return ERROR_FILE_NOT_FOUND;
     }
 
     while ((n_read = read(src_fd, buffer, BUF_SIZE)) > 0) {
@@ -73,7 +79,6 @@ int addFilePermissions(const char *file_path, mode_t add_mode) {
     return SUCCESS;
 }
 
-
 int overwriteFilePermissions(const char *file_path, mode_t new_mode) {
     if (chmod(file_path, new_mode) == -1) {
         return ERROR_PERMISSION_DENIED;
@@ -85,6 +90,9 @@ int executeEditorCommand(const char *editor, const char *copy_file_path) {
     char *ed;
     if (editor != NULL) {
         ed = strdup(editor);
+        if (ed == NULL) {
+            return ERROR_MEMORY_ALLOCATION;
+        }
         for (int i = 0; i < strlen(editor); ++i) {
             ed[i] = tolower(editor[i]);
         }
@@ -92,12 +100,16 @@ int executeEditorCommand(const char *editor, const char *copy_file_path) {
         ed = DEFAULT_EDITOR;
     }
 
-    const uid_t user_id;
-    // TODO handle uid_result
+    uid_t user_id;
     const int uid_result = getEffectiveUserId(&user_id);
+    if (uid_result == ERROR_USER_NOT_FOUND) {
+        return ERROR_USER_NOT_FOUND;
+    }
     char command[512];
     snprintf(command, sizeof(command), "sudo -u \\#%d %s %s", user_id, ed, copy_file_path);
 
-    if (editor != NULL) { free(ed); }
+    if (editor != NULL) {
+        free(ed);
+    }
     return system(command);
 }

@@ -63,7 +63,6 @@ size_t getProgramOptionsSize() {
     return sizeof(options) / sizeof(options[0]);
 }
 
-
 int getCurrentWorkingDirectory(char **cwd) {
     *cwd = (char *) malloc(PATH_MAX * sizeof(char));
     if (*cwd == NULL) {
@@ -113,7 +112,8 @@ int getAbsolutePathFuture(const char *original_path, char **resolved_path) {
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    snprintf(*resolved_path, strlen(temp_resolved_path) + strlen(basename((char *) original_path)) + 2, "%s/%s", temp_resolved_path,
+    snprintf(*resolved_path, strlen(temp_resolved_path) + strlen(basename((char *) original_path)) + 2, "%s/%s",
+             temp_resolved_path,
              basename((char *) original_path));
 
     free(path_copy);
@@ -149,8 +149,7 @@ int getFilePermissions(const char *file_path, mode_t *permissions) {
 int getFileOwner(const char *file_path, uid_t *owner) {
     struct stat file_stat;
     if (stat(file_path, &file_stat) == -1) {
-        perror("stat");
-        exit(EXIT_FAILURE);
+        return ERROR_FILE_NOT_FOUND;
     }
     return file_stat.st_uid;
 }
