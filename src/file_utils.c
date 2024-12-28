@@ -29,9 +29,16 @@ static struct cag_option options[] = {
     {
         .identifier = 'd',
         .access_letters = "d",
-        .access_name = "dir",
+        .access_name = "cfile",
         .value_name = NULL,
         .description = "Copied file path"
+    },
+    {
+        .identifier = 'D',
+        .access_letters = "D",
+        .access_name = "dfile",
+        .value_name = NULL,
+        .description = "Copied directory path"
     },
     {
         .identifier = 'e',
@@ -63,68 +70,19 @@ size_t getProgramOptionsSize() {
     return sizeof(options) / sizeof(options[0]);
 }
 
-int getCurrentWorkingDirectory(char **cwd) {
-    *cwd = (char *) malloc(PATH_MAX * sizeof(char));
-    if (*cwd == NULL) {
-        return ERROR_MEMORY_ALLOCATION;
-    }
-
-    if (getcwd(*cwd, PATH_MAX) == NULL) {
-        free(*cwd);
+int getCurrentWorkingDirectory(char cwd[PATH_MAX]) {
+    if (getcwd(cwd, PATH_MAX) == NULL) {
         return ERROR_CWD;
     }
 
     return SUCCESS;
 }
 
-int getAbsolutePath(const char *original_path, char **resolved_path) {
-    char tempResolvedPath[PATH_MAX];
-    if (realpath(original_path, tempResolvedPath) == NULL) {
-        return ERROR_RESOLVING_PATH;
-    }
-
-    *resolved_path = (char *) malloc(strlen(tempResolvedPath) + 1);
-    if (*resolved_path == NULL) {
-        return ERROR_MEMORY_ALLOCATION;
-    }
-
-    strcpy(*resolved_path, tempResolvedPath);
-    return SUCCESS;
-}
-
-int getAbsolutePathFuture(const char *original_path, char **resolved_path) {
-    char temp_resolved_path[PATH_MAX];
-    char *path_copy = strdup(original_path);
-    if (path_copy == NULL) {
-        return ERROR_MEMORY_ALLOCATION;
-    }
-
-    char *dir_path = dirname(path_copy);
-
-    if (realpath(dir_path, temp_resolved_path) == NULL) {
-        free(path_copy);
-        return ERROR_RESOLVING_PATH;
-    }
-
-    *resolved_path = (char *) malloc(strlen(temp_resolved_path) + strlen(basename((char *) original_path)) + 2);
-    if (*resolved_path == NULL) {
-        free(path_copy);
-        return ERROR_MEMORY_ALLOCATION;
-    }
-
-    snprintf(*resolved_path, strlen(temp_resolved_path) + strlen(basename((char *) original_path)) + 2, "%s/%s",
-             temp_resolved_path,
-             basename((char *) original_path));
-
-    free(path_copy);
-
-    return SUCCESS;
-}
 
 int getEffectiveUserId(uid_t *u_id) {
-    char *sudo_user = getenv("SUDO_USER");
+    const char *sudo_user = getenv("SUDO_USER");
     if (sudo_user) {
-        struct passwd *pw = getpwnam(sudo_user);
+        const struct passwd *pw = getpwnam(sudo_user);
         if (pw) {
             *u_id = pw->pw_uid;
             return SUCCESS;

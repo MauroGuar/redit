@@ -11,6 +11,6 @@ int addFilePermissions(const char *file_path, mode_t add_mode);
 
 int overwriteFilePermissions(const char *file_path, mode_t new_mode);
 
-int executeEditorCommand(const char *editor, const char* copy_file_path);
+int executeEditorCommand(const char *editor, char copy_file_path[]);
 
 #endif

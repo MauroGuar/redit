@@ -8,11 +8,7 @@ const struct cag_option *getProgramOptions();
 
 size_t getProgramOptionsSize();
 
-int getCurrentWorkingDirectory(char **cwd);
-
-int getAbsolutePath(const char *original_path, char **resolved_path);
-
-int getAbsolutePathFuture(const char *original_path, char **resolved_path);
+int getCurrentWorkingDirectory(char cwd[]);
 
 int getEffectiveUserId(uid_t *u_id);
 

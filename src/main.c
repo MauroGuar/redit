@@ -13,26 +13,27 @@
 #include "../include/error_codes.h"
 #include "../include/file_utils.h"
 #include "../include/file_operations.h"
+#include "../include/paths_handle.h"
 
 #define COPY_BUF_SIZE 4096
 
-int copyMode(const char *copy_file_path, const char *privileged_file_path);
+int copyMode(const char copy_file_path[PATH_MAX], const char privileged_file_path[PATH_MAX]);
 
-int overwriteMode(const char *copy_file_path, const char *privileged_file_path, bool keep_copy);
+int overwriteMode(const char copy_file_path[PATH_MAX], const char privileged_file_path[PATH_MAX], bool keep_copy);
 
 char *tryHelpMessage();
 
-int main(int argc, char *argv[]) {
+int main(const int argc, char *argv[]) {
     bool copy_mode = false;
     bool overwrite_mode = false;
     bool copied_file_path = false;
+    bool copied_dir_path = false;
     bool keep_copy = false;
     const char *EDITOR = NULL;
     bool e_included = false;
 
     const struct cag_option *program_options = getProgramOptions();
-    size_t options_size = getProgramOptionsSize();
-    int param_index;
+    const size_t options_size = getProgramOptionsSize();
     cag_option_context context;
 
     cag_option_init(&context, program_options, options_size, argc, argv);
@@ -47,11 +48,15 @@ int main(int argc, char *argv[]) {
             case 'd':
                 copied_file_path = true;
                 break;
+            case 'D':
+                copied_dir_path = true;
+                break;
             case 'e':
                 e_included = true;
                 if (cag_option_get_value(&context) != NULL) {
                     EDITOR = cag_option_get_value(&context);
                 }
+                break;
             case 'k':
                 keep_copy = true;
                 break;
@@ -60,7 +65,7 @@ int main(int argc, char *argv[]) {
                 break;
         }
     }
-    param_index = cag_option_get_index(&context);
+    const int param_index = cag_option_get_index(&context);
 
     if (copy_mode && overwrite_mode) {
         fprintf(stderr, "Error: Cannot use -C and -O at the same time.\n%s\n", tryHelpMessage());
@@ -71,31 +76,58 @@ int main(int argc, char *argv[]) {
         return ERROR_INVALID_ARGUMENT;
     }
 
-    char *copy_file_path;
-    char *privileged_file_path;
-    if (copied_file_path) {
+
+    char copy_file_path[PATH_MAX];
+    char privileged_file_path[PATH_MAX];
+    if (copied_file_path || copied_dir_path) {
         if (param_index + 1 >= argc) {
             fprintf(stderr, "Usage: %s -C /path/to/copy/file /path/to/original/file\n%s\n", argv[0], tryHelpMessage());
             return ERROR_INVALID_ARGUMENT;
         }
 
-        const int cpy_path_result = getAbsolutePathFuture(argv[param_index], &copy_file_path);
+        const int prv_path_result = getAbsolutePath(argv[param_index + 1], privileged_file_path);
+        switch (prv_path_result) {
+            case ERROR_RESOLVING_PATH:
+                fprintf(stderr, "Error resolving privileged file path.\n");
+                return ERROR_RESOLVING_PATH;
+        }
+
+        const int prv_validation_result = validatePath(privileged_file_path, true, false);
+        switch (prv_validation_result) {
+            case ERROR_PERMISSION_DENIED:
+                fprintf(stderr, "Error validating privileged file path: Permission denied.\n");
+                return ERROR_PERMISSION_DENIED;
+        }
+
+        const int cpy_path_result = getAbsolutePathFuture(argv[param_index], copy_file_path);
         switch (cpy_path_result) {
-            case ERROR_MEMORY_ALLOCATION:
-                fprintf(stderr, "Error allocating memory for copy file path.\n");
-                return ERROR_MEMORY_ALLOCATION;
+            case ERROR_PATH_INVALID:
+                fprintf(stderr, "Error resolving copy file path: Invalid path.\n");
+                return ERROR_PATH_INVALID;
             case ERROR_RESOLVING_PATH:
                 fprintf(stderr, "Error resolving copy file path.\n");
                 return ERROR_RESOLVING_PATH;
         }
-        const int prv_path_result = getAbsolutePath(argv[param_index + 1], &privileged_file_path);
-        switch (prv_path_result) {
-            case ERROR_MEMORY_ALLOCATION:
-                fprintf(stderr, "Error allocating memory for privileged file path.\n");
-                return ERROR_MEMORY_ALLOCATION;
-            case ERROR_RESOLVING_PATH:
-                fprintf(stderr, "Error resolving privileged file path.\n");
-                return ERROR_RESOLVING_PATH;
+
+        if (copied_dir_path) {
+            const char *file_base_name = basename(privileged_file_path);
+            const int abs_file_path_result = getAbsFilePathFromDir(copy_file_path, file_base_name);
+            if (abs_file_path_result == ERROR_PATH_TOO_LONG) {
+                fprintf(stderr, "Error getting absolute file path from directory: Path too long.\n");
+                return ERROR_PATH_TOO_LONG;
+            }
+        }
+
+        const int validation_result = validateOrCreatePath(copy_file_path, true, false);
+        switch (validation_result) {
+            case USER_EXIT:
+                return USER_EXIT;
+            case ERROR_PERMISSION_DENIED:
+                fprintf(stderr, "Error validating copy file path: Permission denied.\n");
+                return ERROR_PERMISSION_DENIED;
+            case ERROR_PATH_INVALID:
+                fprintf(stderr, "Error validating copy file path: Invalid path.\n");
+                return ERROR_PATH_INVALID;
         }
     } else {
         if (param_index >= argc) {
@@ -103,46 +135,47 @@ int main(int argc, char *argv[]) {
             return ERROR_INVALID_ARGUMENT;
         }
 
-        char *cwd;
-        const int cwd_result = getCurrentWorkingDirectory(&cwd);
+        char cwd[PATH_MAX];
+        const int cwd_result = getCurrentWorkingDirectory(cwd);
         switch (cwd_result) {
-            case ERROR_MEMORY_ALLOCATION:
-                fprintf(stderr, "Error allocating memory for current working directory.\n");
-                return ERROR_MEMORY_ALLOCATION;
             case ERROR_CWD:
                 fprintf(stderr, "Error resolving current working directory.\n");
                 return ERROR_CWD;
         }
 
-        const int prv_path_result = getAbsolutePath(argv[param_index], &privileged_file_path);
+        const int prv_path_result = getAbsolutePath(argv[param_index], privileged_file_path);
         switch (prv_path_result) {
-            case ERROR_MEMORY_ALLOCATION:
-                fprintf(stderr, "Error allocating memory for privileged file path.\n");
-                free(cwd);
-                return ERROR_MEMORY_ALLOCATION;
             case ERROR_RESOLVING_PATH:
                 fprintf(stderr, "Error resolving privileged file path.\n");
-                free(cwd);
                 return ERROR_RESOLVING_PATH;
         }
 
-        char *base_name = basename(privileged_file_path);
-        copy_file_path = malloc(strlen(cwd) + strlen(base_name) + 2);
-        if (copy_file_path == NULL) {
-            fprintf(stderr, "Error allocating memory for copy file path.\n");
-            free(cwd);
-            return ERROR_MEMORY_ALLOCATION;
+        const int prv_validation_result = validatePath(privileged_file_path, true, false);
+        switch (prv_validation_result) {
+            case ERROR_PERMISSION_DENIED:
+                fprintf(stderr, "Error validating privileged file path: Permission denied.\n");
+                return ERROR_PERMISSION_DENIED;
         }
 
-        sprintf(copy_file_path, "%s/%s", cwd, base_name);
-        free(cwd);
+        char *base_name = basename(privileged_file_path);
+        snprintf(copy_file_path, strlen(cwd) + strlen(base_name) + 2, "%s/%s", cwd, base_name);
+
+        const int validation_result = validateOrCreatePath(copy_file_path, false, true);
+        switch (validation_result) {
+            case USER_EXIT:
+                return USER_EXIT;
+            case ERROR_PERMISSION_DENIED:
+                fprintf(stderr, "Error validating copy file path: Permission denied.\n");
+                return ERROR_PERMISSION_DENIED;
+            case ERROR_PATH_INVALID:
+                fprintf(stderr, "Error validating copy file path: Invalid path.\n");
+                return ERROR_PATH_INVALID;
+        }
     }
 
     if (copy_mode) {
-        int cpy_mode_result = copyMode(copy_file_path, privileged_file_path);
+        const int cpy_mode_result = copyMode(copy_file_path, privileged_file_path);
         if (cpy_mode_result != SUCCESS) {
-            free(copy_file_path);
-            free(privileged_file_path);
             return cpy_mode_result;
         }
 
@@ -153,8 +186,6 @@ int main(int argc, char *argv[]) {
             switch (editor_result) {
                 case ERROR_USER_NOT_FOUND:
                     fprintf(stderr, "Error getting user id for the editor command.\n");
-                    free(copy_file_path);
-                    free(privileged_file_path);
                     return ERROR_USER_NOT_FOUND;
                 case ERROR_MEMORY_ALLOCATION:
                     fprintf(stderr, "Error allocating memory for editor command.\nProceeding without the editor.\n");
@@ -171,19 +202,16 @@ int main(int argc, char *argv[]) {
             }
         }
     } else if (overwrite_mode) {
-        int ovw_mode_result = overwriteMode(copy_file_path, privileged_file_path, keep_copy);
+        const int ovw_mode_result = overwriteMode(copy_file_path, privileged_file_path, keep_copy);
         if (ovw_mode_result != SUCCESS) {
-            free(copy_file_path);
-            free(privileged_file_path);
             return ovw_mode_result;
         }
     }
-    free(copy_file_path);
-    free(privileged_file_path);
+
     return SUCCESS;
 }
 
-int copyMode(const char *copy_file_path, const char *privileged_file_path) {
+int copyMode(const char copy_file_path[PATH_MAX], const char privileged_file_path[PATH_MAX]) {
     uid_t USER_EF_ID;
     const int uid_result = getEffectiveUserId(&USER_EF_ID);
     if (uid_result == ERROR_USER_NOT_FOUND) {
@@ -209,7 +237,7 @@ int copyMode(const char *copy_file_path, const char *privileged_file_path) {
         return ERROR_PERMISSION_DENIED;
     }
 
-    mode_t new_perms = S_IRUSR | S_IWUSR;
+    const mode_t new_perms = S_IRUSR | S_IWUSR;
     const int add_perms_result = addFilePermissions(copy_file_path, new_perms);
     switch (add_perms_result) {
         case ERROR_FILE_NOT_FOUND:
@@ -223,7 +251,7 @@ int copyMode(const char *copy_file_path, const char *privileged_file_path) {
     return SUCCESS;
 }
 
-int overwriteMode(const char *copy_file_path, const char *privileged_file_path, bool keep_copy) {
+int overwriteMode(const char copy_file_path[PATH_MAX], const char privileged_file_path[PATH_MAX], bool keep_copy) {
     uid_t prv_file_owner;
     const int own_result = getFileOwner(privileged_file_path, &prv_file_owner);
     if (own_result == ERROR_FILE_NOT_FOUND) {
