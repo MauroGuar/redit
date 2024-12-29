@@ -16,6 +16,7 @@
 #include <ctype.h>
 #include <threads.h>
 
+#include "../include/file_operations.h"
 #include "../include/file_utils.h"
 
 void normalizeSlashes(const char *input_path, char normalized_path[PATH_MAX]) {
@@ -171,11 +172,18 @@ int validateOrCreatePath(const char path[PATH_MAX], const bool check_read, const
                 return USER_EXIT;
             }
 
-            if (access(path_copy, W_OK) == -1) {
+            if (mkdir(path_dir, 0755) == -1 && errno != EEXIST) {
                 return ERROR_PERMISSION_DENIED;
             }
 
-            if (mkdir(path_copy, 0755) == -1 && errno != EEXIST) {
+            uid_t effective_uid;
+            const int uid_result = getEffectiveUserId(&effective_uid);
+            if (uid_result == ERROR_USER_NOT_FOUND) {
+                return ERROR_USER_NOT_FOUND;
+            }
+
+            const int chown_result = changeFileOwner(path_dir, effective_uid);
+            if (chown_result == ERROR_PERMISSION_DENIED) {
                 return ERROR_PERMISSION_DENIED;
             }
 

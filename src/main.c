@@ -28,9 +28,10 @@ int main(const int argc, char *argv[]) {
     bool overwrite_mode = false;
     bool copied_file_path = false;
     bool copied_dir_path = false;
-    bool keep_copy = false;
     const char *EDITOR = NULL;
     bool e_included = false;
+    bool keep_copy = false;
+
 
     const struct cag_option *program_options = getProgramOptions();
     const size_t options_size = getProgramOptionsSize();
@@ -67,15 +68,9 @@ int main(const int argc, char *argv[]) {
     }
     const int param_index = cag_option_get_index(&context);
 
-    if (copy_mode && overwrite_mode) {
-        fprintf(stderr, "Error: Cannot use -C and -O at the same time.\n%s\n", tryHelpMessage());
+    if (!checkProgramFlags(copy_mode, overwrite_mode, copied_file_path, copied_dir_path, e_included, keep_copy)) {
         return ERROR_INVALID_ARGUMENT;
     }
-    if (!(copy_mode || overwrite_mode)) {
-        fprintf(stderr, "Error: Must use either -C or -O.\n%s\n", tryHelpMessage());
-        return ERROR_INVALID_ARGUMENT;
-    }
-
 
     char copy_file_path[PATH_MAX];
     char privileged_file_path[PATH_MAX];
@@ -128,6 +123,9 @@ int main(const int argc, char *argv[]) {
             case ERROR_PATH_INVALID:
                 fprintf(stderr, "Error validating copy file path: Invalid path.\n");
                 return ERROR_PATH_INVALID;
+            case ERROR_USER_NOT_FOUND:
+                fprintf(stderr, "Error getting user id for the editor command.\n");
+                return ERROR_USER_NOT_FOUND;
         }
     } else {
         if (param_index >= argc) {
@@ -170,6 +168,9 @@ int main(const int argc, char *argv[]) {
             case ERROR_PATH_INVALID:
                 fprintf(stderr, "Error validating copy file path: Invalid path.\n");
                 return ERROR_PATH_INVALID;
+            case ERROR_USER_NOT_FOUND:
+                fprintf(stderr, "Error getting user id for the editor command.\n");
+                return ERROR_USER_NOT_FOUND;
         }
     }
 
@@ -298,8 +299,4 @@ int overwriteMode(const char copy_file_path[PATH_MAX], const char privileged_fil
     }
 
     return SUCCESS;
-}
-
-char *tryHelpMessage() {
-    return "Try 'redit --help' for more information.";
 }
