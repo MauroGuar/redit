@@ -15,13 +15,11 @@
 #include "../include/file_operations.h"
 #include "../include/paths_handle.h"
 
-#define COPY_BUF_SIZE 4096
+#define PROGRAM_DEFAULT_EDITOR "nano"
 
 int copyMode(const char copy_file_path[PATH_MAX], const char privileged_file_path[PATH_MAX]);
 
 int overwriteMode(const char copy_file_path[PATH_MAX], const char privileged_file_path[PATH_MAX], bool keep_copy);
-
-char *tryHelpMessage();
 
 int main(const int argc, char *argv[]) {
     bool copy_mode = false;
@@ -124,8 +122,11 @@ int main(const int argc, char *argv[]) {
                 fprintf(stderr, "Error validating copy file path: Invalid path.\n");
                 return ERROR_PATH_INVALID;
             case ERROR_USER_NOT_FOUND:
-                fprintf(stderr, "Error getting user id for the editor command.\n");
+                fprintf(stderr, "Error validating copy file path: User not found.\n");
                 return ERROR_USER_NOT_FOUND;
+            case ERROR_PATH_TOO_LONG:
+                fprintf(stderr, "Error validating copy file path: Path too long.\n");
+                return ERROR_PATH_TOO_LONG;
         }
     } else {
         if (param_index >= argc) {
@@ -169,8 +170,11 @@ int main(const int argc, char *argv[]) {
                 fprintf(stderr, "Error validating copy file path: Invalid path.\n");
                 return ERROR_PATH_INVALID;
             case ERROR_USER_NOT_FOUND:
-                fprintf(stderr, "Error getting user id for the editor command.\n");
+                fprintf(stderr, "Error validating copy file path: User not found.\n");
                 return ERROR_USER_NOT_FOUND;
+            case ERROR_PATH_TOO_LONG:
+                fprintf(stderr, "Error validating copy file path: Path too long.\n");
+                return ERROR_PATH_TOO_LONG;
         }
     }
 
@@ -183,7 +187,7 @@ int main(const int argc, char *argv[]) {
         if (!e_included) {
             printf("%s\n", copy_file_path);
         } else {
-            const int editor_result = executeEditorCommand(EDITOR, copy_file_path);
+            const int editor_result = executeEditorCommand(EDITOR, copy_file_path, PROGRAM_DEFAULT_EDITOR);
             switch (editor_result) {
                 case ERROR_USER_NOT_FOUND:
                     fprintf(stderr, "Error getting user id for the editor command.\n");
@@ -219,7 +223,7 @@ int copyMode(const char copy_file_path[PATH_MAX], const char privileged_file_pat
         return ERROR_USER_NOT_FOUND;
     }
 
-    const int copy_result = copyFile(privileged_file_path, copy_file_path, COPY_BUF_SIZE);
+    const int copy_result = copyFile(privileged_file_path, copy_file_path);
     switch (copy_result) {
         case ERROR_SAME_SOURCE:
             fprintf(stderr, "Error copying file: Source and destination are the same.\n");
@@ -230,6 +234,15 @@ int copyMode(const char copy_file_path[PATH_MAX], const char privileged_file_pat
         case ERROR_PERMISSION_DENIED:
             fprintf(stderr, "Error copying file: Permission denied.\n");
             return ERROR_PERMISSION_DENIED;
+        case ERROR_INVALID_SOURCE:
+            fprintf(stderr, "Error copying file: Invalid source.\n");
+            return ERROR_INVALID_SOURCE;
+        case ERROR_COPY_FAILED:
+            fprintf(stderr, "Error copying file: Copy failed.\n");
+            return ERROR_COPY_FAILED;
+        case ERROR_MEMORY_ALLOCATION:
+            fprintf(stderr, "Error copying file: Memory allocation failed.\n");
+            return ERROR_MEMORY_ALLOCATION;
     }
 
     const int ch_own_result = changeFileOwner(copy_file_path, USER_EF_ID);
@@ -267,7 +280,7 @@ int overwriteMode(const char copy_file_path[PATH_MAX], const char privileged_fil
         return ERROR_FILE_NOT_FOUND;
     }
 
-    const int copy_result = copyFile(copy_file_path, privileged_file_path, COPY_BUF_SIZE);
+    const int copy_result = copyFile(copy_file_path, privileged_file_path);
     switch (copy_result) {
         case ERROR_SAME_SOURCE:
             fprintf(stderr, "Error copying file: Source and destination are the same.\n");
@@ -278,6 +291,15 @@ int overwriteMode(const char copy_file_path[PATH_MAX], const char privileged_fil
         case ERROR_PERMISSION_DENIED:
             fprintf(stderr, "Error copying file: Permission denied.\n");
             return ERROR_PERMISSION_DENIED;
+        case ERROR_INVALID_SOURCE:
+            fprintf(stderr, "Error copying file: Invalid source.\n");
+            return ERROR_INVALID_SOURCE;
+        case ERROR_COPY_FAILED:
+            fprintf(stderr, "Error copying file: Copy failed.\n");
+            return ERROR_COPY_FAILED;
+        case ERROR_MEMORY_ALLOCATION:
+            fprintf(stderr, "Error copying file: Memory allocation failed.\n");
+            return ERROR_MEMORY_ALLOCATION;
     }
 
     const int ch_own_result = changeFileOwner(privileged_file_path, prv_file_owner);

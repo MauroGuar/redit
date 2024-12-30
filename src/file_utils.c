@@ -175,5 +175,5 @@ int getFileOwner(const char *file_path, uid_t *owner) {
     if (stat(file_path, &file_stat) == -1) {
         return ERROR_FILE_NOT_FOUND;
     }
-    return file_stat.st_uid;
+    return SUCCESS;
 }

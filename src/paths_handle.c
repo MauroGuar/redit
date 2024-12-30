@@ -153,6 +153,44 @@ int validatePath(const char path[PATH_MAX], const bool check_read, const bool ch
     return SUCCESS;
 }
 
+int createDirRecursively(const char *path) {
+    char temp_path[PATH_MAX];
+    strncpy(temp_path, path, sizeof(temp_path));
+    const int last_index = strlen(temp_path);
+    if (temp_path[last_index - 1] != '/') {
+        if (strlen(temp_path) + 2 > PATH_MAX) {
+            return ERROR_PATH_TOO_LONG;
+        }
+        temp_path[last_index] = '/';
+        temp_path[last_index + 1] = '\0';
+    }
+
+    size_t mkdir_counter = 0;
+    for (size_t pos = 1; temp_path[pos] != '\0'; ++pos) {
+        if (temp_path[pos] == '/') {
+            temp_path[pos] = '\0';
+            if (mkdir(temp_path, 0755) == SUCCESS) {
+                uid_t ef_uid;
+                const int user_result = getEffectiveUserId(&ef_uid);
+                if (user_result == ERROR_USER_NOT_FOUND) {
+                    return ERROR_USER_NOT_FOUND;
+                }
+
+                const int chown_result = changeFileOwner(temp_path, ef_uid);
+                if (chown_result == ERROR_PERMISSION_DENIED) {
+                    return ERROR_PERMISSION_DENIED;
+                }
+                mkdir_counter++;
+            }
+            temp_path[pos] = '/';
+        }
+    }
+    if (mkdir_counter == 0) {
+        return ERROR_PATH_INVALID;
+    }
+    return SUCCESS;
+}
+
 int validateOrCreatePath(const char path[PATH_MAX], const bool check_read, const bool check_write) {
     struct stat path_stat;
 
@@ -172,25 +210,29 @@ int validateOrCreatePath(const char path[PATH_MAX], const bool check_read, const
                 return USER_EXIT;
             }
 
-            if (mkdir(path_dir, 0755) == -1 && errno != EEXIST) {
-                return ERROR_PERMISSION_DENIED;
+            const int create_result = createDirRecursively(path_dir);
+            switch (create_result) {
+                case ERROR_PATH_TOO_LONG:
+                    return ERROR_PATH_TOO_LONG;
+                case ERROR_PATH_INVALID:
+                    return ERROR_PATH_INVALID;
             }
-
-            uid_t effective_uid;
-            const int uid_result = getEffectiveUserId(&effective_uid);
-            if (uid_result == ERROR_USER_NOT_FOUND) {
-                return ERROR_USER_NOT_FOUND;
-            }
-
-            const int chown_result = changeFileOwner(path_dir, effective_uid);
-            if (chown_result == ERROR_PERMISSION_DENIED) {
-                return ERROR_PERMISSION_DENIED;
-            }
-
-            return SUCCESS;
         }
-        return ERROR_PATH_INVALID;
+
+        uid_t effective_uid;
+        const int uid_result = getEffectiveUserId(&effective_uid);
+        if (uid_result == ERROR_USER_NOT_FOUND) {
+            return ERROR_USER_NOT_FOUND;
+        }
+
+        return SUCCESS;
     }
 
-    return validatePath(path, check_read, check_write);
+    const int val_result = validatePath(path, check_read, check_write);
+    if (val_result == ERROR_PERMISSION_DENIED) {
+        return ERROR_PERMISSION_DENIED;
+    }
+
+    return SUCCESS;
 }
+
