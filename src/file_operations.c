@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 
-#include "../include/error_codes.h"
+#include "../include/error_handler.h"
 #include "../include/file_utils.h"
 
 
@@ -21,7 +21,7 @@ int copyFile(const char *src, const char *dest) {
 
     struct stat src_stat;
     if (stat(src, &src_stat) == -1) {
-        return (errno == EACCES) ? ERROR_PERMISSION_DENIED : ERROR_FILE_NOT_FOUND;
+        return errno == EACCES ? ERROR_PERMISSION_DENIED : ERROR_FILE_NOT_FOUND;
     }
     if (!S_ISREG(src_stat.st_mode)) {
         return ERROR_INVALID_SOURCE;
@@ -43,16 +43,16 @@ int copyFile(const char *src, const char *dest) {
 
     const int src_fd = open(src, O_RDONLY);
     if (src_fd == -1) {
-        return (errno == EACCES) ? ERROR_PERMISSION_DENIED : ERROR_FILE_NOT_FOUND;
+        return errno == EACCES ? ERROR_PERMISSION_DENIED : ERROR_FILE_NOT_FOUND;
     }
 
     const int dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (dest_fd == -1) {
         close(src_fd);
-        return (errno == EACCES) ? ERROR_PERMISSION_DENIED : ERROR_COPY_FAILED;
+        return errno == EACCES ? ERROR_PERMISSION_DENIED : ERROR_COPY_FAILED;
     }
 
-    u_int8_t *buffer = (u_int8_t *) malloc(buf_size);
+    u_int8_t *buffer = malloc(buf_size);
     if (!buffer) {
         close(src_fd);
         close(dest_fd);

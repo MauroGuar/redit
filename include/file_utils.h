@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <cargs.h>
 
-const struct cag_option *getProgramOptions();
+const cag_option *getProgramOptions();
 
 size_t getProgramOptionsSize();
 
@@ -19,6 +19,6 @@ int getEffectiveUserId(uid_t *u_id);
 
 int getFilePermissions(const char *file_path, mode_t *permissions);
 
-int getFileOwner(const char *file_path, uid_t *owner);
+int getFileOwner(const char *file_path, uid_t *file_owner);
 
 #endif

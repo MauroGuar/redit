@@ -85,6 +85,9 @@ fabric.properties
 /filter-more/images/tower.bmp
 /filter-more/images/yard.bmp
 
+# CMakeLists is handled differently for windows and linux
 CMakeLists.txt
 
-tests
+# Ignore lib and test files
+tests/test_files
+lib

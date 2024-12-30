@@ -9,15 +9,82 @@
 #include <errno.h>
 #include <pwd.h>
 #include <regex.h>
-
-#include "../include/error_codes.h"
-#include "../include/paths_handle.h"
-
 #include <ctype.h>
-#include <threads.h>
 
+#include "../include/error_handler.h"
+#include "../include/paths_handler.h"
+#include "../include/flags_handler.h"
 #include "../include/file_operations.h"
 #include "../include/file_utils.h"
+
+int resolveAndValidatePaths(const int argc, char *argv[], const flag_state_t *flags,
+                            char copy_file_path[PATH_MAX], char privileged_file_path[PATH_MAX]) {
+    if (flags->copied_file_path || flags->copied_dir_path) {
+        if (flags->param_index + 1 >= argc) {
+            fprintf(stderr, "Usage: %s -C /path/to/copy/file /path/to/original/file\n%s\n", argv[0], tryHelpMessage());
+            return ERROR_INVALID_ARGUMENT;
+        }
+
+        const int prv_path_result = getAbsolutePath(argv[flags->param_index + 1], privileged_file_path);
+        if (prv_path_result != SUCCESS) {
+            return printError(prv_path_result, "resolving privileged file path");
+        }
+
+        const int prv_valid_result = validatePath(privileged_file_path, true, false);
+        if (prv_valid_result != SUCCESS) {
+            return printError(prv_valid_result, "validating privileged file path");
+        }
+
+        const int cpy_path_result = getAbsolutePathFuture(argv[flags->param_index], copy_file_path);
+        if (cpy_path_result != SUCCESS) {
+            return printError(cpy_path_result, "resolving copy file path");
+        }
+
+        if (flags->copied_dir_path) {
+            const char *file_base_name = basename(privileged_file_path);
+            const int abs_file_path_result = getAbsFilePathFromDir(copy_file_path, file_base_name);
+            if (abs_file_path_result != SUCCESS) {
+                return printError(abs_file_path_result, "getting absolute file path from directory");
+            }
+        }
+
+        const int validation_result = validateOrCreatePath(copy_file_path, true, false);
+        if (validation_result != SUCCESS) {
+            return printError(validation_result, "validating copy file path");
+        }
+    } else {
+        if (flags->param_index >= argc) {
+            fprintf(stderr, "Usage: %s -C /path/to/original/file\n%s\n", argv[0], tryHelpMessage());
+            return ERROR_INVALID_ARGUMENT;
+        }
+
+        char cwd[PATH_MAX];
+        const int cwd_result = getCurrentWorkingDirectory(cwd);
+        if (cwd_result != SUCCESS) {
+            return printError(cwd_result, "resolving current working directory");
+        }
+
+        const int prv_path_result = getAbsolutePath(argv[flags->param_index], privileged_file_path);
+        if (prv_path_result != SUCCESS) {
+            return printError(prv_path_result, "resolving privileged file path");
+        }
+
+        const int prv_validation_result = validatePath(privileged_file_path, true, false);
+        if (prv_validation_result != SUCCESS) {
+            return printError(prv_validation_result, "validating privileged file path");
+        }
+
+        const char *base_name = basename(privileged_file_path);
+        snprintf(copy_file_path, strlen(cwd) + strlen(base_name) + 2, "%s/%s", cwd, base_name);
+
+        const int validation_result = validateOrCreatePath(copy_file_path, false, true);
+        if (validation_result != SUCCESS) {
+            return printError(validation_result, "validating copy file path");
+        }
+    }
+
+    return SUCCESS;
+}
 
 void normalizeSlashes(const char *input_path, char normalized_path[PATH_MAX]) {
     int input_index = 0, output_index = 0;
