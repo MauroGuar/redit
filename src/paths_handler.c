@@ -160,8 +160,12 @@ void normalizeSlashes(const char *input_path, char normalized_path[PATH_MAX]) {
         input_index++; // Move to the next character in the input path
     }
 
-    // Ensure that the normalized path ends with a single slash and a null terminator
-    normalized_path[output_index] = '\0';
+    // Ensures that the path does not end with any slashes
+    if (normalized_path[output_index - 1] == '/') {
+        normalized_path[output_index - 1] = '\0';
+    } else {
+        normalized_path[output_index] = '\0';
+    }
 }
 
 /**
@@ -177,6 +181,9 @@ void normalizeSlashes(const char *input_path, char normalized_path[PATH_MAX]) {
  */
 int getAbsolutePath(const char *original_path, char resolved_path[PATH_MAX]) {
     if (realpath(original_path, resolved_path) == NULL) {
+        if (errno == ENOENT) {
+            return ERROR_FILE_NOT_FOUND;
+        }
         return ERROR_RESOLVING_PATH;
     }
     return SUCCESS;
@@ -194,8 +201,10 @@ int getAbsolutePath(const char *original_path, char resolved_path[PATH_MAX]) {
  * - Handles special cases like `.` (current directory), `..` (parent directory), `~` (home directory), and environment variables.
  */
 int getAbsolutePathFuture(const char *original_path, char resolved_path[PATH_MAX]) {
+    // Normalize the slashes in the original path
+    // It also removes the end slashes if present
     char normalized_path[PATH_MAX];
-    normalizeSlashes(original_path, normalized_path); // Normalize the slashes in the original path
+    normalizeSlashes(original_path, normalized_path);
 
     // Path begins with '.' (current directory)
     if (normalized_path[0] == '.' && (normalized_path[1] == '\0' || normalized_path[1] == '/')) {
@@ -288,8 +297,13 @@ int getAbsolutePathFuture(const char *original_path, char resolved_path[PATH_MAX
             return ERROR_RESOLVING_PATH; // Return an error if the environment variable is not found
         }
 
+        // Normalize and get the absolute path of the environment variable value
+        char abs_env_value[PATH_MAX];
+        const int env_result = getAbsolutePathFuture(env_value, abs_env_value);
+        if (env_result != SUCCESS) { return env_result; }
+
         // Append the rest of the path to the environment variable value
-        snprintf(resolved_path, PATH_MAX, "%s%s", env_value, normalized_path + strlen(env_path) + 1);
+        snprintf(resolved_path, PATH_MAX, "%s%s", abs_env_value, normalized_path + strlen(env_path) + 1);
         return SUCCESS;
     }
 

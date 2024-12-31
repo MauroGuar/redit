@@ -92,9 +92,9 @@ struct option_info {
  * @brief Specifies incompatible flag combinations for validation.
  */
 struct option_info flags_info[] = {
-    {'C', "Ok"},     // Copy mode is incompatible with overwrite and overwrite-related flags
-    {'O', "CdDe"},   // Overwrite mode is incompatible with copy and copy-related flags
-    {'d', "D"}       // -d (file) and -D (directory) are mutually exclusive
+    {'C', "Ok"}, // Copy mode is incompatible with overwrite and overwrite-related flags
+    {'O', "CdDe"}, // Overwrite mode is incompatible with copy and copy-related flags
+    {'d', "D"} // -d (file) and -D (directory) are mutually exclusive
 };
 
 /**
@@ -133,7 +133,8 @@ int handleFlags(const int argc, char *argv[], flag_state_t *flags) {
     cag_option_context context;
 
     cag_option_init(&context, PROGRAM_OPTIONS, OPTIONS_SIZE, argc, argv);
-    while (cag_option_fetch(&context)) { // Parse the options
+    while (cag_option_fetch(&context)) {
+        // Parse the options
         switch (cag_option_get_identifier(&context)) {
             case 'C':
                 flags->copy_mode = true;
@@ -149,7 +150,8 @@ int handleFlags(const int argc, char *argv[], flag_state_t *flags) {
                 break;
             case 'e':
                 flags->use_editor = true; // Editor is included
-                if (cag_option_get_value(&context) != NULL) { // Get the editor value if specified
+                if (cag_option_get_value(&context) != NULL) {
+                    // Get the editor value if specified
                     flags->editor = cag_option_get_value(&context);
                 }
                 break;
@@ -190,7 +192,6 @@ int handleFlags(const int argc, char *argv[], flag_state_t *flags) {
 bool checkProgramFlags(const bool copy_mode, const bool overwrite_mode, const bool copied_file_path,
                        const bool copied_dir_path,
                        const bool e_included, const bool keep_copy) {
-
     // Check if either copy or overwrite mode is active
     if (!(copy_mode || overwrite_mode)) {
         fprintf(stderr, "Error: Must use either -C or -O.\n%s\n", tryHelpMessage());
@@ -212,7 +213,7 @@ bool checkProgramFlags(const bool copy_mode, const bool overwrite_mode, const bo
     active_flags[flag_index] = '\0';
 
     const size_t flags_info_size = sizeof(flags_info) / sizeof(flags_info[0]); // Number of flag combinations
-    
+
 
     /**
      * @section Check for incompatible flag combinations.
@@ -221,9 +222,12 @@ bool checkProgramFlags(const bool copy_mode, const bool overwrite_mode, const bo
      * flags specified in the `flags_info` array. If any incompatible flags are found,
      * an error message is displayed, and the function returns `false`.
     */
-    for (size_t i = 0; i < flag_index; ++i) { // Iterate through active flags
-        for (size_t j = 0; j < flags_info_size; ++j) { // Iterate through incompatible flags
-            if (active_flags[i] == flags_info[j].identifier) { // Check if the flag is active
+    for (size_t i = 0; i < flag_index; ++i) {
+        // Iterate through active flags
+        for (size_t j = 0; j < flags_info_size; ++j) {
+            // Iterate through incompatible flags
+            if (active_flags[i] == flags_info[j].identifier) {
+                // Check if the flag is active
                 // Get the incompatible flags for the current flag
                 const char *incompatible_flags = flags_info[j].incompatible_flags;
 
@@ -241,7 +245,8 @@ bool checkProgramFlags(const bool copy_mode, const bool overwrite_mode, const bo
                 }
                 present_incompatible_flags[inc_index] = '\0';
 
-                if (inc_index > 0) { // If incompatible flags are present
+                if (inc_index > 0) {
+                    // If incompatible flags are present
                     // Display error message with incompatible flags
                     fprintf(stderr, "Error: Flag/s ");
                     for (size_t k = 0; k < strlen(present_incompatible_flags); ++k) {
@@ -263,16 +268,19 @@ bool checkProgramFlags(const bool copy_mode, const bool overwrite_mode, const bo
 void displayHelp() {
     printf("Usage: redit [OPTIONS] <copy_file> [privileged_file]\n");
     printf("\n");
-    printf("A command-line tool for editing or copying privileged files securely.\n");
+    printf("A command-line tool for editing and/or copying privileged files securely.\n");
     printf("\n");
     printf("Options:\n");
-    printf("  -C, --copy              Copy the privileged file to the copy file destination.\n");
-    printf("  -O, --overwrite         Overwrite the copy file over the privileged file.\n");
+    printf("  -C, --copy              Copy the privileged file to the copy file destination and\n");
+    printf("                          make it editable for the original user.\n");
+    printf("  -O, --overwrite         Overwrite the privileged file with the copy file using\n");
+    printf("                          the original permissions of the privileged file.\n");
     printf("  -d, --cfile             Specify the copy file destination as a file.\n");
     printf("  -D, --dfile             Specify the copy file destination as a directory.\n");
     printf("  -e, --editor <editor>   Use the specified editor for the operation.\n");
-    printf("                          Defaults to the value of the REDIT_EDITOR environment variable\n");
-    printf("                          or the program's default editor.\n");
+    printf("                          If the flag is given without a value, it defaults to\n");
+    printf("                          the value of the REDIT_EDITOR environment variable,\n");
+    printf("                          or the program's default editor if the env is null.\n");
     printf("  -k, --keep              Keep the copy file after overwriting.\n");
     printf("  -h, --help              Display this help message.\n");
     printf("\n");
@@ -281,14 +289,14 @@ void displayHelp() {
     printf("      Copy 'privileged.txt' to the current working directory.\n");
     printf("\n");
     printf("  redit -O /privileged/privileged.txt\n");
-    printf("      Overwrite '/privileged/privileged.txt' with a copy stored with the same file name\n");
-    printf("      stored in the current working directory.\n");
+    printf("      Overwrite '/privileged/privileged.txt' with a copy stored with the same\n");
+    printf("      file name in the current working directory.\n");
     printf("\n");
-    printf("  redit -Cd -e vim source.txt /privileged/destination.txt\n");
-    printf("      Copy '/privileged/destination.txt' to './source.txt' and open it with Vim.\n");
+    printf("  redit -Cd privileged_2.txt /privileged/privileged.txt -e vim\n");
+    printf("      Copy '/privileged/privileged.txt' to './privileged_2.txt' and open it with Vim.\n");
     printf("\n");
     printf("Environment Variables:\n");
-    printf("  REDIT_EDITOR            Specifies the default editor to use when the -e flag is omitted.\n");
+    printf("  REDIT_EDITOR            Specifies the default editor to use when the -e flag value is omitted.\n");
     printf("\n");
     printf("IMPORTANT:\n");
     printf("  - The command must be executed with sufficient privileges to access the privileged file.\n");
