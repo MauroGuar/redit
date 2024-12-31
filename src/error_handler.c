@@ -1,11 +1,34 @@
 #include <stdio.h>
-
 #include "../include/error_handler.h"
 
-int printError(const int error_code, const char *context) {
-    char *blank_space = " ";
-    if (context == NULL) { blank_space = ""; }
+/**
+ * @file error_handler.c
+ * @brief Implementation of the centralized error handling mechanism.
+ *
+ * This file contains the `printError` function, which interprets error codes
+ * and prints corresponding messages to `stderr`.
+ */
 
+/**
+ * @brief Prints a descriptive error message based on the provided error code.
+ *
+ * The function uses a switch-case construct to match the given error code with
+ * its corresponding message. If the `context` is provided, it is appended to
+ * the message for additional clarity. If the error code is not recognized, a
+ * generic "unknown error" message is displayed.
+ *
+ * @param error_code The error code to interpret.
+ * @param context A string describing the context of the error. Can be `NULL`.
+ * @return int The input `error_code` for propagation.
+ */
+int printError(const int error_code, const char *context) {
+    // Determine whether to include a blank space before the context
+    char *blank_space = " ";
+    if (context == NULL) {
+        blank_space = "";
+    }
+
+    // Match error code to a specific message
     switch (error_code) {
         case USER_EXIT:
             return USER_EXIT;
@@ -25,7 +48,7 @@ int printError(const int error_code, const char *context) {
             fprintf(stderr, "Error%s%s: Invalid argument.\n", blank_space, context);
             return ERROR_INVALID_ARGUMENT;
         case ERROR_SAME_SOURCE:
-            fprintf(stderr, "Error%s%s: Source and destination are the same.\n", blank_space, context);
+            fprintf(stderr, "Error%s%s: Copy and privileged paths are the same.\n", blank_space, context);
             return ERROR_SAME_SOURCE;
         case ERROR_CWD:
             fprintf(stderr, "Error%s%s: Current working directory error.\n", blank_space, context);
@@ -49,7 +72,7 @@ int printError(const int error_code, const char *context) {
             fprintf(stderr, "Error%s%s: Path too long.\n", blank_space, context);
             return ERROR_PATH_TOO_LONG;
         case ERROR_INVALID_SOURCE:
-            fprintf(stderr, "Error%s%s: Invalid source.\n", blank_space, context);
+            fprintf(stderr, "Error%s%s: Invalid copy file.\n", blank_space, context);
             return ERROR_INVALID_SOURCE;
         case ERROR_COMMAND_NOT_FOUND:
             fprintf(stderr, "Error%s%s: Command not found.\n", blank_space, context);
