@@ -15,8 +15,8 @@ It also allows you to select the editor you want for editing that copy, with in 
 
 
 ## Video
-<!-- 
-[![redit Tutorial Video](https://img.youtube.com/vi/03lRzf7iSiU/0.jpg)](https://www.youtube.com/watch?v=03lRzf7iSiU) -->
+
+[![redit Tutorial Video](https://img.youtube.com/vi/G_OwVwlDGlM/0.jpg)](https://www.youtube.com/watch?v=G_OwVwlDGlM)
 
 ## Features  
 
