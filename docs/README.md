@@ -206,24 +206,30 @@ The simplest way to install `redit` is by downloading the precompiled binary fro
 For users who prefer to build `redit` themselves, you can clone the repository and compile the project using `CMake`.  
 
 **Steps:**  
-1. Clone the repository:  
+1. Ensure Required Tools Are Installed:
+   Before proceeding, ensure `cmake` and build tools are installed. For Debian-based systems, you can install them using the following commands:
+   ```bash
+   sud apt-get update
+   sudo apt-get install cmake build-essential
+   ```
+2. Clone the repository:  
    ```bash
    git clone https://github.com/MauroGuar/redit.git
    cd redit
    ```  
-2. Configure the project in `Release` mode:  
+3. Configure the project in `Release` mode:  
    ```bash
    cmake -DCMAKE_BUILD_TYPE=Release -B build
    ```  
-3. Build the project:  
+4. Build the project:  
    ```bash
    cmake --build build
    ```  
-4. Install the binary:  
+5. Install the binary:  
    ```bash
    sudo cmake --install build
    ```  
-5. Verify the installation:  
+6. Verify the installation:  
    ```bash
    redit -h
    ```  
