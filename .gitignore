@@ -85,6 +85,9 @@ fabric.properties
 /filter-more/images/tower.bmp
 /filter-more/images/yard.bmp
 
+# Ignore .idea in main branch
+.idea
+
 # Ignore lib and test files
 tests
 lib
