@@ -16,7 +16,7 @@ It also allows you to select the editor you want for editing that copy, with in 
 
 ## Video
 
-[![redit Tutorial Video](https://img.youtube.com/vi/G_OwVwlDGlM/0.jpg)](https://www.youtube.com/watch?v=G_OwVwlDGlM)
+<!-- [![redit Tutorial Video](https://img.youtube.com/vi/G_OwVwlDGlM/0.jpg)](https://www.youtube.com/watch?v=G_OwVwlDGlM) -->
 
 ## Features  
 
@@ -173,3 +173,62 @@ To ensure the `REDIT_EDITOR` variable is preserved while using `sudo`, you have 
 </br>
 
 **Note**: any path specified can be relative or absolute. Just make sure it is correct and you have the enough permissions.
+
+## Installation
+
+There are two ways to install `redit` depending on your preferences:
+
+### Using the Precompiled Binary (Recommended)
+
+The simplest way to install `redit` is by downloading the precompiled binary from the [GitHub Releases](https://github.com/MauroGuar/redit/releases) page.
+
+**Steps:**  
+1. Download the binary archive.
+   
+2. Move the binary to a directory in your `PATH` (e.g., `/usr/local/bin`):  
+   ```bash
+   sudo mv redit /usr/local/bin/
+   ```  
+3. Change the ownership of the binary to `root` (except you stored it with in your home directory):  
+   ```bash
+   sudo chown root:root /usr/local/bin/redit
+   ```  
+4. Modify the permissions to make it executable:  
+   ```bash
+   sudo chmod 755 /usr/local/bin/redit
+   ```
+5. Verify the installation:  
+   ```bash
+   redit -h
+   ```  
+
+### Installing from Source  
+For users who prefer to build `redit` themselves, you can clone the repository and compile the project using `CMake`.  
+
+**Steps:**  
+1. Clone the repository:  
+   ```bash
+   git clone https://github.com/MauroGuar/redit.git
+   cd redit
+   ```  
+2. Configure the project in `Release` mode:  
+   ```bash
+   cmake -DCMAKE_BUILD_TYPE=Release -B build
+   ```  
+3. Build the project:  
+   ```bash
+   cmake --build build
+   ```  
+4. Install the binary:  
+   ```bash
+   sudo cmake --install build
+   ```  
+5. Verify the installation:  
+   ```bash
+   redit -h
+   ```  
+
+#### Notes:  
+- Ensure that `/usr/local/bin` is included in your `PATH`.  
+- Using the precompiled binary is faster and easier for most users. Building from source is recommended for developers or those requiring custom modifications.
+
