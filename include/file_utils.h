@@ -20,6 +20,7 @@
 #ifndef FILE_UTILS_H
 #define FILE_UTILS_H
 
+#include <linux/limits.h>
 #include <sys/types.h>
 #include <cargs.h>
 
@@ -32,7 +33,7 @@ char *tryHelpMessage();
 bool checkProgramFlags(bool copy_mode, bool overwrite_mode, bool copied_file_path, bool copied_dir_path,
                        bool e_included, bool keep_copy);
 
-int getCurrentWorkingDirectory(char cwd[]);
+int getCurrentWorkingDirectory(char cwd[PATH_MAX]);
 
 int getEffectiveUserId(uid_t *u_id);
 

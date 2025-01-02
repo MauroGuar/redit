@@ -248,7 +248,9 @@ int getAbsolutePathFuture(const char *original_path, char resolved_path[PATH_MAX
         resolved_path[last_index + 1] = '\0';
 
         // Get the absolute path of the all the '..' in the path
-        if (realpath(resolved_path, resolved_path) == NULL) {
+        char temp_resolved_path[PATH_MAX];
+        strcpy(temp_resolved_path, resolved_path);
+        if (realpath(temp_resolved_path, resolved_path) == NULL) {
             return ERROR_RESOLVING_PATH;
         }
 
@@ -376,7 +378,7 @@ int validatePath(const char path[PATH_MAX], const bool check_read, const bool ch
 int createDirRecursively(const char *path) {
     // Make a copy of the path to avoid modifying the original
     char temp_path[PATH_MAX];
-    strncpy(temp_path, path, sizeof(temp_path));
+    strlcpy(temp_path, path, PATH_MAX);
 
     // Ensure that the path ends with a slash
     const int last_index = strlen(temp_path);

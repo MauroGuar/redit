@@ -17,20 +17,22 @@
  */
 #ifndef PATHS_HANDLE_H
 #define PATHS_HANDLE_H
+
+#include <linux/limits.h>
 #include "flags_handler.h"
 #include <stdbool.h>
 
 int resolveAndValidatePaths(int argc, char *argv[], const flag_state_t *flags,
                             char copy_file_path[PATH_MAX], char privileged_file_path[PATH_MAX]);
 
-int getAbsolutePath(const char *original_path, char resolved_path[]);
+int getAbsolutePath(const char *original_path, char resolved_path[PATH_MAX]);
 
-int getAbsolutePathFuture(const char *original_path, char resolved_path[]);
+int getAbsolutePathFuture(const char *original_path, char resolved_path[PATH_MAX]);
 
 int getAbsFilePathFromDir(char path[PATH_MAX], const char *file_name);
 
 int validatePath(const char path[PATH_MAX], bool check_read, bool check_write);
 
-int validateOrCreatePath(const char path[], bool check_read, bool check_write);
+int validateOrCreatePath(const char path[PATH_MAX], bool check_read, bool check_write);
 
 #endif
